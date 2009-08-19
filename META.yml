@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Posterous
-version:            0.01_01
+version:            0.01_02
 abstract:           API to posterous.com
 author:
     - 許 家瑋 <shelling@apple.com>
