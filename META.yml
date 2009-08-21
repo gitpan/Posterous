@@ -1,16 +1,22 @@
 --- #YAML:1.0
 name:               Posterous
-version:            0.01_02
+version:            0.01_03
 abstract:           API to posterous.com
 author:
-    - 許 家瑋 <shelling@apple.com>
+    - shelling <shelling@cpan.org>
 license:            unknown
 distribution_type:  module
 configure_requires:
     ExtUtils::MakeMaker:  0
 build_requires:
     ExtUtils::MakeMaker:  0
-requires:  {}
+requires:
+    Attribute::Protected:  0
+    HTTP::Request:        0
+    LWP::UserAgent:       0
+    MIME::Base64:         0
+    Rubyish::Attribute:   0
+    XML::Simple:          0
 no_index:
     directory:
         - t

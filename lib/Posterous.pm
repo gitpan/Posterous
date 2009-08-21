@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.01_02';
+our $VERSION = '0.01_03';
 
 use LWP::UserAgent;
 use HTTP::Request;
@@ -64,6 +64,14 @@ sub read_public_posts : Public {
   die "no site_id or hostname is given" unless exists($options{site_id}) or exists($options{hostname});
   my $request = HTTP::Request->new( GET => $READPOST_PATH . options2query(%options) );
   XMLin($UA->request($request)->content);
+}
+
+sub primary_site : Public {
+
+}
+
+sub add_post : Public {
+
 }
 
 sub options2query : Protected {

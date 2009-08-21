@@ -1,9 +1,10 @@
 Changes
-Makefile.PL
-MANIFEST
-README
 examples/auth.pl
-t/Posterous.t
-t/simple.t
+examples/read_posts.pl
 lib/Posterous.pm
+Makefile.PL
+MANIFEST			This list of files
+t/Posterous.t
+t/protected_methods.t
+t/simple.t
 META.yml                                 Module meta-data (added by MakeMaker)
