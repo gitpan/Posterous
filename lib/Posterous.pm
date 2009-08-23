@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.01_03';
+our $VERSION = '0.01';
 
 use LWP::UserAgent;
 use HTTP::Request;
@@ -44,16 +44,21 @@ sub auth_key : Public {
 
 sub account_info : Public {
   my ($self) = @_;
-  my $request = HTTP::Request->new( GET => $AUTH_PATH );
-  $request->header( Authorization => "Basic ". $self->auth_key );
-  my $content = $UA->request($request)->content;
-  XMLin($content);
+  state $account_info;
+  if (defined $account_info) {
+    $account_info;
+  } else {
+    my $request = HTTP::Request->new( GET => $AUTH_PATH )->basic_auth($self->auth_key);
+    # $request->header( Authorization => "Basic ". $self->auth_key );
+    my $content = $UA->request($request)->content;
+    $account_info = XMLin($content);
+  }
 }
 
 sub read_posts : Public {
   my ($self, %options) = @_;
-  my $request = HTTP::Request->new( GET => $READPOST_PATH . options2query(%options) );
-  $request->header( Authorization => "Basic ". $self->auth_key );
+  my $request = HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) )->basic_auth($self->auth_key);
+  # $request->header( Authorization => "Basic ". $self->auth_key );
   my $content = $UA->request($request)->content;
   XMLin($content);
 }
@@ -62,27 +67,50 @@ sub read_public_posts : Public {
   my ($self, %options) = @_;
   $options{site_id} = $self->site_id unless exists($options{site_id});
   die "no site_id or hostname is given" unless exists($options{site_id}) or exists($options{hostname});
-  my $request = HTTP::Request->new( GET => $READPOST_PATH . options2query(%options) );
+  my $request = HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) );
   XMLin($UA->request($request)->content);
 }
 
 sub primary_site : Public {
-
+  my ($self) = @_;
+  state $primary_site;
+  while ( my ($key, $value) = each %{ $self->account_info->{site} } ) {
+    $primary_site = $value->{id} if $value->{primary} eq "true"
+  }
+  $primary_site;
 }
 
 sub add_post : Public {
+  my ($self, %options) = @_;
+  my $request = HTTP::Request->new( POST => $NEWPOST_PATH )->basic_auth($self->auth_key);
+  $request->content(options2query(%options));
+  XMLin($UA->request($request)->content);
+}
 
+sub add_comment :Public {
+  my ($self, %options) = @_;
+  my $request = HTTP::Request->new( POST => $COMMMENT_PATH )->basic_auth($self->auth_key);
+  $request->content(options2query(%options));
+  XMLin($UA->request($request)->content);
 }
 
 sub options2query : Protected {
   my (%options) = @_;
-  my $query = "?";
+  my $query;
   while ( my ($key,$value) = each %options) {
-    $query .= "$key=$value";
+    $query .= "$key=$value&";
   }
+  $query =~ s/&$//g;
   $query;
 }
 
+package HTTP::Request;
+
+sub basic_auth {
+  my ($self, $key) = @_;
+  $self->header(Authorization => "Basic $key");
+  $self;
+}
 
 1;
 __END__
@@ -144,6 +172,25 @@ Since, site_id or hostname should be specified in %options.
 Available %options key is the same as read_posts()
 
 return a list of public posts.
+
+
+=head2 add_post(%options)
+
+POST /api/newpost, return post callback.
+
+Available %options key include site_id, media, title, body, autopost, private, data, tags, source, sourceLink.
+
+
+=head2 add_comment(%options)
+
+POST /api/newcomment, return comment callback.
+
+Available %options key include post_id, comment.
+
+
+=head2 primary_site()
+
+return user's primay site id
 
 
 =head1 SEE ALSO

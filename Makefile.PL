@@ -6,6 +6,8 @@ WriteMakefile(
     NAME              => 'Posterous',
     VERSION_FROM      => 'lib/Posterous.pm',
     ABSTRACT_FROM     => 'lib/Posterous.pm',
+    MIN_PERL_VERSION  => '5.010',
+    PREREQ_PRINT      => 1,
     PREREQ_PM         => {
           'LWP::UserAgent'        => 0,
           'HTTP::Request'         => 0,
