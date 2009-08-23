@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use LWP::UserAgent;
 use HTTP::Request;
@@ -12,7 +12,6 @@ use MIME::Base64;
 use Rubyish::Attribute;
 use Data::Dumper;
 use Attribute::Protected;
-use XML::Simple;
 
 
 our $DOMAIN = "http://posterous.com";
@@ -45,22 +44,16 @@ sub auth_key : Public {
 sub account_info : Public {
   my ($self) = @_;
   state $account_info;
-  if (defined $account_info) {
-    $account_info;
-  } else {
-    my $request = HTTP::Request->new( GET => $AUTH_PATH )->basic_auth($self->auth_key);
-    # $request->header( Authorization => "Basic ". $self->auth_key );
-    my $content = $UA->request($request)->content;
-    $account_info = XMLin($content);
-  }
+  $account_info //= $UA->request( 
+      HTTP::Request->new( GET => $AUTH_PATH )->basic_auth($self->auth_key) 
+    )->xmlize_content;
+  $account_info;
 }
 
 sub read_posts : Public {
   my ($self, %options) = @_;
   my $request = HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) )->basic_auth($self->auth_key);
-  # $request->header( Authorization => "Basic ". $self->auth_key );
-  my $content = $UA->request($request)->content;
-  XMLin($content);
+  $UA->request($request)->xmlize_content;
 }
 
 sub read_public_posts : Public {
@@ -68,7 +61,7 @@ sub read_public_posts : Public {
   $options{site_id} = $self->site_id unless exists($options{site_id});
   die "no site_id or hostname is given" unless exists($options{site_id}) or exists($options{hostname});
   my $request = HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) );
-  XMLin($UA->request($request)->content);
+  $UA->request($request)->xmlize_content;
 }
 
 sub primary_site : Public {
@@ -84,14 +77,14 @@ sub add_post : Public {
   my ($self, %options) = @_;
   my $request = HTTP::Request->new( POST => $NEWPOST_PATH )->basic_auth($self->auth_key);
   $request->content(options2query(%options));
-  XMLin($UA->request($request)->content);
+  $UA->request($request)->xmlize_content;
 }
 
 sub add_comment :Public {
   my ($self, %options) = @_;
   my $request = HTTP::Request->new( POST => $COMMMENT_PATH )->basic_auth($self->auth_key);
   $request->content(options2query(%options));
-  XMLin($UA->request($request)->content);
+  $UA->request($request)->xmlize_content;
 }
 
 sub options2query : Protected {
@@ -100,6 +93,7 @@ sub options2query : Protected {
   while ( my ($key,$value) = each %options) {
     $query .= "$key=$value&";
   }
+  $query //= " ";         # avoid warning $query was not initialized
   $query =~ s/&$//g;
   $query;
 }
@@ -112,6 +106,14 @@ sub basic_auth {
   $self;
 }
 
+package HTTP::Response;
+use XML::Simple;
+
+sub xmlize_content {
+  my ($self) = @_;
+  XMLin($self->content);
+}
+
 1;
 __END__
 
@@ -122,6 +124,12 @@ Posterous - API to posterous.com
 =head1 SYNOPSIS
 
   use Posterous;
+
+  $posterous = Posterous->new($user, $pass, $site_id);
+
+  $posterous->account_info;     # list all sites owned by $user
+
+  $posterous->add_post( title => "hello posterous", body => "Post through Posterous.pm" );
 
 =head1 DESCRIPTION
 
