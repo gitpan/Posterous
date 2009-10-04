@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Posterous
-version:            0.02
+version:            0.03
 abstract:           API to posterous.com
 author:
     - shelling <shelling@cpan.org>
@@ -16,7 +16,7 @@ requires:
     LWP::UserAgent:       0
     MIME::Base64:         0
     perl:                 5.010
-    Rubyish::Attribute:   0
+    Rubyish::Attribute:   1.1
     XML::Simple:          0
 no_index:
     directory:

@@ -1,6 +1,7 @@
 use 5.010;
 use ExtUtils::MakeMaker;
 use MIME::Base64;
+use Storable;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 WriteMakefile(
@@ -12,7 +13,7 @@ WriteMakefile(
     PREREQ_PM         => {
           'LWP::UserAgent'        => 0,
           'HTTP::Request'         => 0,
-          'Rubyish::Attribute'    => 0,
+          'Rubyish::Attribute'    => 1.1,
           'MIME::Base64'          => 0,
           'Attribute::Protected'  => 0,
           'XML::Simple'           => 0,
@@ -22,8 +23,6 @@ WriteMakefile(
 );
 
 say "Please enter your account data for testing. Remark! it will use it to do some HTTP POST!";
-print "mail: "; chomp(my $mail = <>);
-print "pass: "; chomp(my $pass = <>);
-open TEMP_AUTH_FILE, " > /tmp/.posterous";
-print TEMP_AUTH_FILE encode_base64 $mail;
-print TEMP_AUTH_FILE encode_base64 $pass;
+$mail = prompt("mail:");
+$pass = prompt("pass:");
+store([encode_base64($mail), encode_base64($pass)], "/tmp/.posterous");

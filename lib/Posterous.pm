@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use LWP::UserAgent;
 use HTTP::Request;
@@ -23,14 +23,17 @@ our $READPOST_PATH = $DOMAIN."/api/readposts";
 
 our $UA = LWP::UserAgent->new();
 
-attr_accessor "user", "pass", "site_id";
+BEGIN {
+  attr_accessor "user", "pass", "site_id";
+}
 
 sub new {
   my ($class, $user, $pass, $site_id) = @_;
   die "didn\'t give user\' email or password" unless defined($user) && defined($pass);
   my $self = bless {}, $class;
-  $self->user($user)->pass($pass);
-  $self->site_id($site_id) if $site_id;
+  __user__ = $user;
+  __pass__ = $pass;
+  __site_id__ = $site_id if $site_id;
   $self;
 }
 
@@ -44,24 +47,28 @@ sub auth_key : Public {
 sub account_info : Public {
   my ($self) = @_;
   state $account_info;
-  $account_info //= $UA->request( 
-      HTTP::Request->new( GET => $AUTH_PATH )->basic_auth($self->auth_key) 
-    )->xmlize_content;
+  $account_info //= HTTP::Request->new( GET => $AUTH_PATH )
+                                 ->basic_auth($self->auth_key)
+                                 ->submit_by($UA)
+                                 ->xmlized_content;
   $account_info;
 }
 
 sub read_posts : Public {
   my ($self, %options) = @_;
-  my $request = HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) )->basic_auth($self->auth_key);
-  $UA->request($request)->xmlize_content;
+  HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) )
+               ->basic_auth($self->auth_key)
+               ->submit_by($UA)
+               ->xmlized_content;
 }
 
 sub read_public_posts : Public {
   my ($self, %options) = @_;
   $options{site_id} = $self->site_id unless exists($options{site_id});
   die "no site_id or hostname is given" unless exists($options{site_id}) or exists($options{hostname});
-  my $request = HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) );
-  $UA->request($request)->xmlize_content;
+  HTTP::Request->new( GET => $READPOST_PATH . "?" . options2query(%options) )
+               ->submit_by($UA)
+               ->xmlized_content;
 }
 
 sub primary_site : Public {
@@ -77,14 +84,14 @@ sub add_post : Public {
   my ($self, %options) = @_;
   my $request = HTTP::Request->new( POST => $NEWPOST_PATH )->basic_auth($self->auth_key);
   $request->content(options2query(%options));
-  $UA->request($request)->xmlize_content;
+  $UA->request($request)->xmlized_content;
 }
 
 sub add_comment :Public {
   my ($self, %options) = @_;
   my $request = HTTP::Request->new( POST => $COMMMENT_PATH )->basic_auth($self->auth_key);
   $request->content(options2query(%options));
-  $UA->request($request)->xmlize_content;
+  $UA->request($request)->xmlized_content;
 }
 
 sub options2query : Protected {
@@ -100,16 +107,23 @@ sub options2query : Protected {
 
 package HTTP::Request;
 
+# authorization_basic($user, $pass) is another way,
+# but basic_auth($auth_key) reutrn request object itself.
 sub basic_auth {
   my ($self, $key) = @_;
   $self->header(Authorization => "Basic $key");
   $self;
 }
 
+sub submit_by {
+  my ($self, $ua) = @_;
+  $ua->request($self);
+}
+
 package HTTP::Response;
 use XML::Simple;
 
-sub xmlize_content {
+sub xmlized_content {
   my ($self) = @_;
   XMLin($self->content);
 }
